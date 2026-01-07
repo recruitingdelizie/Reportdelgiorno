@@ -209,45 +209,33 @@
             statusMsg.style.display = 'none';
 
             try {
-                // Usa JSONP per evitare problemi CORS
-                const callbackName = 'jsonpCallback_' + Date.now();
-                const scriptUrl = SCRIPT_URL + '?callback=' + callbackName;
+                // Chiamata semplice con fetch
+                const response = await fetch(SCRIPT_URL);
+                const data = await response.json();
 
-                // Crea promise per gestire JSONP
-                const response = await new Promise((resolve, reject) => {
-                    // Crea callback globale
-                    window[callbackName] = function(data) {
-                        delete window[callbackName];
-                        document.body.removeChild(script);
-                        resolve(data);
-                    };
-
-                    // Crea script tag
-                    const script = document.createElement('script');
-                    script.src = scriptUrl;
-                    script.onerror = () => {
-                        delete window[callbackName];
-                        document.body.removeChild(script);
-                        reject(new Error('Errore nel caricamento dello script'));
-                    };
-
-                    // Timeout dopo 30 secondi
-                    setTimeout(() => {
-                        if (window[callbackName]) {
-                            delete window[callbackName];
-                            document.body.removeChild(script);
-                            reject(new Error('Timeout: richiesta scaduta'));
-                        }
-                    }, 30000);
-
-                    document.body.appendChild(script);
-                });
-
-                if (response.status === 'success') {
-                    // Scarica il file aprendo in nuova finestra
-                    window.open(response.imageUrl, '_blank');
+                if (data.status === 'success') {
+                    // Apri l'immagine in nuova tab
+                    window.open(data.imageUrl, '_blank');
 
                     // Mostra messaggio di successo
+                    statusMsg.className = 'status-message success';
+                    statusMsg.innerHTML = `✅ <strong>Immagine aperta!</strong><br>
+                        Fai click destro → "Salva immagine con nome" → Salva come: <strong>${data.filename}</strong><br>
+                        <small>Se non si apre, <a href="${data.imageUrl}" target="_blank">clicca qui</a></small>`;
+                } else {
+                    throw new Error(data.message || 'Errore sconosciuto');
+                }
+
+            } catch (error) {
+                // Mostra errore
+                statusMsg.className = 'status-message error';
+                statusMsg.innerHTML = `❌ <strong>Errore:</strong> ${error.message}`;
+            } finally {
+                // Riabilita pulsante
+                btn.disabled = false;
+                btnText.textContent = '📥 Scarica JPEG';
+            }
+        }
                     statusMsg.className = 'status-message success';
                     statusMsg.innerHTML = `✅ <strong>Download avviato!</strong><br>File: ${response.filename}`;
                 } else {
