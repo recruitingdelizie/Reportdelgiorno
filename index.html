@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download Report Giornaliero</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 24px;
+            padding: 48px 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 32px;
+            color: #1a202c;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: #718096;
+            font-size: 16px;
+            margin-bottom: 32px;
+        }
+
+        .date-display {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 32px;
+        }
+
+        .filename-preview {
+            background: #f7fafc;
+            border: 2px dashed #cbd5e0;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 32px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #2d3748;
+            word-break: break-all;
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 18px 36px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-download:active {
+            transform: translateY(0);
+        }
+
+        .btn-download:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-message {
+            margin-top: 24px;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .status-message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .status-message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+
+        .info-box {
+            background: #edf2f7;
+            padding: 16px;
+            border-radius: 12px;
+            margin-top: 24px;
+            font-size: 13px;
+            color: #4a5568;
+            line-height: 1.6;
+        }
+
+        .info-box strong {
+            color: #2d3748;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Report Giornaliero</h1>
+        <p class="subtitle">Scarica il report di oggi</p>
+
+        <div class="date-display" id="dateDisplay">
+            Caricamento...
+        </div>
+
+        <div class="filename-preview" id="filenamePreview">
+            📄 Report_07-01-2026.jpg
+        </div>
+
+        <button class="btn-download" id="downloadBtn" onclick="downloadReport()">
+            <span id="btnText">📥 Scarica JPEG</span>
+        </button>
+
+        <div class="status-message" id="statusMessage"></div>
+
+        <div class="info-box">
+            <strong>ℹ️ Come funziona:</strong><br>
+            Il report viene generato al momento come immagine JPEG con il nome della data di oggi. Il download parte automaticamente e il file avrà il nome corretto!
+        </div>
+    </div>
+
+    <script>
+        // INSERISCI QUI L'URL DELLA TUA WEB APP DI GOOGLE APPS SCRIPT
+        const SCRIPT_URL = 'https://script.google.com/macros/s/IL_TUO_SCRIPT_ID/exec';
+
+        // Mostra data di oggi
+        function updateDate() {
+            const oggi = new Date();
+            const opzioni = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const dataFormattata = oggi.toLocaleDateString('it-IT', opzioni);
+            
+            document.getElementById('dateDisplay').textContent = dataFormattata;
+
+            // Aggiorna preview nome file
+            const giorno = String(oggi.getDate()).padStart(2, '0');
+            const mese = String(oggi.getMonth() + 1).padStart(2, '0');
+            const anno = oggi.getFullYear();
+            const nomeFile = `Report_${giorno}-${mese}-${anno}.jpg`;
+            
+            document.getElementById('filenamePreview').innerHTML = `📄 ${nomeFile}`;
+        }
+
+        updateDate();
+
+        async function downloadReport() {
+            const btn = document.getElementById('downloadBtn');
+            const btnText = document.getElementById('btnText');
+            const statusMsg = document.getElementById('statusMessage');
+
+            // Disabilita pulsante e mostra spinner
+            btn.disabled = true;
+            btnText.innerHTML = '<span class="spinner"></span> Generazione in corso...';
+            statusMsg.style.display = 'none';
+
+            try {
+                // Chiama lo script di Google Apps
+                const response = await fetch(SCRIPT_URL);
+                
+                if (!response.ok) {
+                    throw new Error('Errore nella generazione del report');
+                }
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    // Scarica il file
+                    const link = document.createElement('a');
+                    link.href = data.imageUrl;
+                    link.download = data.filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    // Mostra messaggio di successo
+                    statusMsg.className = 'status-message success';
+                    statusMsg.innerHTML = `✅ <strong>Download completato!</strong><br>File: ${data.filename}`;
+                } else {
+                    throw new Error(data.message || 'Errore sconosciuto');
+                }
+
+            } catch (error) {
+                // Mostra errore
+                statusMsg.className = 'status-message error';
+                statusMsg.innerHTML = `❌ <strong>Errore:</strong> ${error.message}`;
+            } finally {
+                // Riabilita pulsante
+                btn.disabled = false;
+                btnText.textContent = '📥 Scarica JPEG';
+            }
+        }
+
+        // Download automatico al caricamento della pagina (opzionale)
+        // window.onload = function() {
+        //     setTimeout(downloadReport, 1000);
+        // };
+    </script>
+</body>
+</html>
