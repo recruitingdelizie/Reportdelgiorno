@@ -177,7 +177,7 @@
 
     <script>
         // INSERISCI QUI L'URL DELLA TUA WEB APP DI GOOGLE APPS SCRIPT
-        const SCRIPT_URL = 'https://script.google.com/macros/s/IL_TUO_SCRIPT_ID/exec';
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzT0qRDLMsoLbQVOLJ64Fr_3hjWBbRxzatFE-t7cP4Z1q-Vl1pmxLzV5-QetnzNY4dvTw/exec';
 
         // Mostra data di oggi
         function updateDate() {
@@ -209,35 +209,55 @@
             statusMsg.style.display = 'none';
 
             try {
-                // Chiama lo script di Google Apps
-                const response = await fetch(SCRIPT_URL);
-                
-                if (!response.ok) {
-                    throw new Error('Errore nella generazione del report');
-                }
+                // Usa JSONP per evitare problemi CORS
+                const callbackName = 'jsonpCallback_' + Date.now();
+                const scriptUrl = SCRIPT_URL + '?callback=' + callbackName;
 
-                const data = await response.json();
+                // Crea promise per gestire JSONP
+                const response = await new Promise((resolve, reject) => {
+                    // Crea callback globale
+                    window[callbackName] = function(data) {
+                        delete window[callbackName];
+                        document.body.removeChild(script);
+                        resolve(data);
+                    };
 
-                if (data.status === 'success') {
-                    // Scarica il file
-                    const link = document.createElement('a');
-                    link.href = data.imageUrl;
-                    link.download = data.filename;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
+                    // Crea script tag
+                    const script = document.createElement('script');
+                    script.src = scriptUrl;
+                    script.onerror = () => {
+                        delete window[callbackName];
+                        document.body.removeChild(script);
+                        reject(new Error('Errore nel caricamento dello script'));
+                    };
+
+                    // Timeout dopo 30 secondi
+                    setTimeout(() => {
+                        if (window[callbackName]) {
+                            delete window[callbackName];
+                            document.body.removeChild(script);
+                            reject(new Error('Timeout: richiesta scaduta'));
+                        }
+                    }, 30000);
+
+                    document.body.appendChild(script);
+                });
+
+                if (response.status === 'success') {
+                    // Scarica il file aprendo in nuova finestra
+                    window.open(response.imageUrl, '_blank');
 
                     // Mostra messaggio di successo
                     statusMsg.className = 'status-message success';
-                    statusMsg.innerHTML = `✅ <strong>Download completato!</strong><br>File: ${data.filename}`;
+                    statusMsg.innerHTML = `✅ <strong>Download avviato!</strong><br>File: ${response.filename}`;
                 } else {
-                    throw new Error(data.message || 'Errore sconosciuto');
+                    throw new Error(response.message || 'Errore sconosciuto');
                 }
 
             } catch (error) {
                 // Mostra errore
                 statusMsg.className = 'status-message error';
-                statusMsg.innerHTML = `❌ <strong>Errore:</strong> ${error.message}`;
+                statusMsg.innerHTML = `❌ <strong>Errore:</strong> ${error.message}<br><br>Verifica che l'URL dello script sia corretto in index.html`;
             } finally {
                 // Riabilita pulsante
                 btn.disabled = false;
